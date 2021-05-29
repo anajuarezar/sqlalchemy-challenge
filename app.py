@@ -150,7 +150,7 @@ def start(start):
 
 
 # Here we use a similar procedure, except we have two parameters. 
-@app.route("/api/v1.0/<start>/<end>")
+@app.route("/api/v1.0/<first>/<end>")
 def between(first=None, end=None):
     # Create our session (link) from Python to the DB
     session = Session(engine)
