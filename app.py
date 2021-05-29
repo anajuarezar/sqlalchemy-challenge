@@ -3,7 +3,6 @@
 #################################################
 
 # We import our dependancies 
-import numpy as np
 
 import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
@@ -19,13 +18,12 @@ from flask import Flask, jsonify
 # We create our engine
 engine = create_engine("sqlite:///hawaii.sqlite")
 
-# Reflect an existing database into a new model
+# We use reflect to automap the tables
 Base = automap_base()
 
-# Reflect the tables
 Base.prepare(engine, reflect=True)
 
-# Save reference to the tables
+# Save the tables
 Measurement = Base.classes.measurement
 Station = Base.classes.station
 
@@ -41,40 +39,48 @@ app = Flask(__name__)
 #################################################
 
 # We create our routes 
+
+# Our first route is the home page, where we will display the available routes
 @app.route("/")
 def home():
     """Here you can find al the available routes"""
     return (
         f"Available Routes:<br/>"
-        f"/api/v1.0/stations"
-        f"/api/v1.0/tobs"
-        f"/api/v1.0/<start>"
-        f"/api/v1.0/<start>/<end>"
+        f"/api/v1.0/stations<br/>"
+        f"/api/v1.0/tobs<br/>"
+        f"/api/v1.0/<start><br/>"
+        f"/api/v1.0/<start>/<end><br/>"
     )
 
+# Our second route is precipitation
+# We begin this route with the standard code of naming the route
+# We proceed with opening the session and creating our query
 
 @app.route("/api/v1.0/precipitation")
 def precipitations():
-    # Create our session (link) from Python to the DB
+    # Create our session so we can query out DB
     session = Session(engine)
     prec = session.query(Measurement.prcp, Measurement.date).group_by(Measurement.date).all()
 
+    # We create an empty dictionary where we will append the result of the loop
     precip_dict = {}
-
     for prcp, date in prec:
         precip_dict[date] = prcp
 
+   # We close the session. 
     session.close()
 
+    # We jsonify the results so we can display it. 
     return jsonify(precip_dict)
 
 
     
 
-
+# The next app follows a similar code. 
 @app.route("/api/v1.0/stations")
 def stations():
-    # Create our session (link) from Python to the DB
+    
+    # Create our session again.
     session = Session(engine)
 
     # Query all passengers
@@ -89,19 +95,19 @@ def stations():
     # We append the list to the dictionary
     station_dict = {'name': station_names}
 
-    #We use jsonify so we can show the result of our query
-    
 
     #We close our session so we can continue working with it
-
     session.close()
 
+    #We use jsonify so we can show the result of our query
     return jsonify(station_dict)
 
 
+# We follow the same initial steps.
 @app.route("/api/v1.0/tobs")
 def tobs():
-    # Create our session (link) from Python to the DB
+    
+    #We create our session. 
     session = Session(engine)
 
     results_tobs = session.query(Measurement.tobs).filter(Measurement.station == 'USC00519281').\
@@ -116,6 +122,54 @@ def tobs():
     session.close()
 
     return jsonify(tobs_dict)
+
+
+
+#We follow the same initial code
+@app.route("/api/v1.0/<start>")
+def start(start):
+    # We create the session and query
+    session = Session(engine)
+
+    # Here we save all the functions we are goint to use using FUNC
+    request = [Measurement.date, func.min(Measurement.tobs),
+    func.max(Measurement.tobs), func.avg(Measurement.tobs)]
+    
+    # We query using the functions we saved.
+    results_min = session.query(*request).\
+        filter(Measurement.date>start).all()
+
+    # We create the list that will cointain a dictinary with the results of the query
+    compilation = []
+    for each in results_min:
+        compilation.append({'date': each[0], 'TMIN': each[1], 'TMAX': each[2], 'TAVG': each[3]})
+
+    session.close()
+
+    return jsonify(compilation)
+
+
+# Here we use a similar procedure, except we have two parameters. 
+@app.route("/api/v1.0/<start>/<end>")
+def between(first=None, end=None):
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    end_start_req = [Measurement.date, func.min(Measurement.tobs),
+    func.max(Measurement.tobs), func.avg(Measurement.tobs)]
+    
+    results_between = session.query(*end_start_req).\
+        filter(Measurement.date >= first, Measurement.date <= end).all()
+
+    compilation_end = []
+    for each in results_between:
+        compilation_end.append({'date': each[0], 'TMIN': each[1], 'TMAX': each[2], 'TAVG': each[3]})
+
+    session.close()
+
+    return jsonify(compilation_end)
+
+
 
 
     
