@@ -78,7 +78,7 @@ def stations():
     session = Session(engine)
 
     # Query all passengers
-    results = session.query(Station.station).all()
+    results = session.query(Station.name).all()
 
     #We create a dictionary from the row data and append to a list
     station_names = []
@@ -104,11 +104,21 @@ def tobs():
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
+    results_tobs = session.query(Measurement.tobs).filter(Measurement.station == 'USC00519281').\
+        filter(Measurement.date>"2016-08-23").\
+        group_by(Measurement.date).all()
+
     #We follow a similar procedure with the dictionary
-    tobs = []
+    tobs_dict = []
+    for  each in results_tobs:
+        tobs_dict.append(each[0])
 
     session.close()
 
+    return jsonify(tobs_dict)
+
+
+    
 
 
 #################################################
